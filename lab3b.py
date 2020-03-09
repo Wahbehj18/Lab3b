@@ -34,15 +34,13 @@ class Inode:
 
         
 class Block:
-    def __init__(self, blockNumber, indirect, free):
+    def __init__(self, blockNumber, indirect, free, offset):
         self.blockNumber = blockNumber
         self.indirection = indirect # 0-direct, 1-single ...
         self.free = free
+        self.offset = offset
+
         
-        
-
-
-
 class Dirent:
     def __init__(self, column):
         self.Name = int(column[6])
@@ -74,9 +72,13 @@ def main():
         if row[0] == "SUPERBLOCK":
             super = Superblock(row)
         elif row[0] == "BFREE":
-            blockSet.add(Block(row[1], 0, True))
+            blockSet.add(Block(int(row[1]), 0, True, 0))
+        elif row[0] == "INDIRECT":
+            blockSet.add(Block(int(row[5]), int(row[2]), False, int(row[4])))
+            
         
-
+    for b in blockSet:
+        print(b.blockNumber)
 
             
 
