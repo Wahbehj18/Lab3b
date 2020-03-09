@@ -1,21 +1,7 @@
 import csv
 import argparse
 
-def checkArgs():
-    parser = argparse.ArgumentParser(description='Parse CSV file')
-    parser.add_argument('csvFile', help='CSV file to parse')
-    args = parser.parse_args()
-
-    #print(args.csvFile)
-    if not ".csv" in args.csvFile:
-        print("Error File is not valid CSV")
-        return 1
     
-    try:
-        open(args.csvFile, "r")
-    except IOError:
-        print("Error File does not exist")
-        return 1
 class Superblock:
     def __init__(self, column):
         self.BlockTotal = int(column[1])
@@ -25,6 +11,9 @@ class Superblock:
         self.BlocksPerGroup = int(column[5])
         self.InodesPerGroup = int(column[6])
         self.FirstNonReservedInode = int(column[7])
+
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)
 
 class Group:
     def __init__(self, column):
@@ -41,19 +30,55 @@ class Group:
 class Inode:
     def __init__(self, column):
         self.InodeNumber = int(column[1])
+        self.fileType = str(column[2])
+
+        
+class Block:
+    def __init__(self, blockNumber, indirect, free):
+        self.blockNumber = blockNumber
+        self.indirection = indirect # 0-direct, 1-single ...
+        self.free = free
+        
+        
+
 
 
 class Dirent:
     def __init__(self, column):
         self.Name = int(column[6])
 
-class Indirect:
-    def __init__(self, column):
-        self.InodeNumber = int(column[1])
 
 
 def main():
-    checkArgs()
+    parser = argparse.ArgumentParser(description='Parse CSV file')
+    parser.add_argument('csvFile', help='CSV file to parse')
+    args = parser.parse_args()
+
+    #print(args.csvFile)
+    if not ".csv" in args.csvFile:
+        print("Error File is not valid CSV")
+        return 1
+
+    try:
+        csvFile = open(args.csvFile, "r")
+    except IOError:
+        print("Error File does not exist")
+        return 1
+
+    fileReader = csv.reader(csvFile)
+    group = []
+    blockSet = set([])
+    inodeSet = set([])
+    for row in fileReader:
+        #print(','.join(row))
+        if row[0] == "SUPERBLOCK":
+            super = Superblock(row)
+        elif row[0] == "BFREE":
+            blockSet.add(Block(row[1], 0, True))
+        
+
+
+            
 
 if __name__ == '__main__':
     main()
