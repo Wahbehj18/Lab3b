@@ -1,0 +1,25 @@
+#!/bin/bash
+
+PROJECT_URL="www.cs.ucla.edu/classes/cs111/Samples"
+MIN_TESTS=20
+
+let b=1
+
+while :
+do
+      
+    pfx="P3B-test_"
+    for s in csv err
+    do
+	f=$pfx$b.$s
+	wget $PROJECT_URL/$f > /dev/null 2> /dev/null
+	ret=$?
+	if [ $b -lt $MIN_TESTS -a $ret -ne 0 ]; then
+	echo "Unable to download testcase $f from $PROJECT_URL"
+	fi
+    done
+    if [ $ret -ne 0 ]; then
+	break;
+    fi
+    let b+=1
+done
