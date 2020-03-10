@@ -7,7 +7,7 @@ inodeSet = set([])
 freeInodes = []
 inodeList = []
 direntList = []
-IndirectList = []
+indirectList = []
 bfreeList = []
 superBlockObject = None
 usedBlocks = {}
@@ -85,10 +85,7 @@ class Indirect:
         self.BlockNum = int(column[4])
         self.BlockNumRef = int(column[5])
 
-
-def BlockAudit(superBlock, groupObj):
-    MaxBlocks = superBlock.BlockTotal
-    FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
+def InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj):
     for x in inodeList:
         logicalOffset = 0
         for block in x.directBlocks:
@@ -118,12 +115,34 @@ def BlockAudit(superBlock, groupObj):
                 print("RESERVED {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, indirect, x.inodeNumber, logicalOffset))
             elif indirect != 0:
                 if indirect not in usedBlocks:
-                    usedBlocks[indirect] = [Block(indirect, 0, False, logicalOffset, x.inodeNumber)]
+                    usedBlocks[indirect] = [Block(indirect, indirectionLevel, False, logicalOffset, x.inodeNumber)]
                 else:
-                    usedBlocks[indirect].append(Block(indirect, 0, False, logicalOffset, x.inodeNumber)) 
+                    usedBlocks[indirect].append(Block(indirect, indirectionLevel, False, logicalOffset, x.inodeNumber)) 
             indirectionLevel += 1
-
-            return
+    for element in indirectList:
+        level = ""
+        if element.IndirectionLevel == 2:
+            level = "DOUBLE "
+        elif element.IndirectionLevel == 3:
+            level = "TRIPLE "
+        blockReference = element.BlockNumRef
+        if blockReference < 0 or blockReference >= MaxBlocks:
+            print("INVALID {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, blockReference, element.OwnerInode, element.BlockOffset))
+        elif blockReference != 0 and blockReference < FirstBlock:
+            print("RESERVED {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, blockReference, element.OwnerInode, element.BlockOffset))
+        elif blockReference != 0:
+            if blockReference not in usedBlocks:
+                usedBlocks[blockReference] = [Block(blockReference, element.IndirectionLevel, False, element.BlockOffset, element.OwnerInode)]
+            else:
+                usedBlocks[blockReference].append(Block(blockReference, element.IndirectionLevel, False, element.BlockOffset, element.OwnerInode))
+    return
+        
+def BlockAudit(superBlock, groupObj):
+    MaxBlocks = superBlock.BlockTotal
+    FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
+    InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj)
+    
+    return
 
 
 def InodeAudit():
@@ -157,7 +176,7 @@ def main():
             bfreeList.append(int(row[1]))
             #blockSet.add(Block(int(row[1]), 0, True, 0))
         elif row[0] == "INDIRECT":
-            IndirectList.append(Indirect(row))
+            indirectList.append(Indirect(row))
             #blockSet.add(Block(int(row[5]), int(row[2]), False, int(row[4])))
         elif row[0] == "GROUP":
             group = Group(row)
