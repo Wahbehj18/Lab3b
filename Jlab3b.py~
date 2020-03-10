@@ -22,8 +22,8 @@ class Superblock:
         self.InodesPerGroup = int(column[6])
         self.FirstNonReservedInode = int(column[7])
 
-#    def __str__(self):
-#        return str(self.__class__) + ": " + str(self.__dict__)
+    def __str__(self):
+        return str(self.__class__) + ": " + str(self.__dict__)
 
 class Group:
     def __init__(self, column):
@@ -104,10 +104,30 @@ def BlockAudit(superBlock, groupObj):
             logicalOffset += 1
     return
 
+def isFreeInode(iNum, superBlock):
+    if iNum < superBlock.FirstNonReservedInode or iNum > superBlock.InodeTotal:
+        return False
+    elif iNum not in freeInodes:
+        return False
+    else:
+        return True
 
-def InodeAudit():
-    for i in 
-    return
+def InodeAudit(superBlock):
+    
+    for i in inodeList:
+        free = isFreeInode(i.inodeNumber, superBlock)
+        if i.mode <= 0 and not free:
+            print("UNALLOCATED INODE " + i.inodeNumber + " NOT ON FREELIST")
+
+            
+    for j in range(superBlock.FirstNonReservedInode,
+                   1+ superBlock.InodeTotal):
+        if j not in freeInodes:
+            for n in inodeList:
+                if j == n.inodeNumber:
+                    allocated = True
+            if not allocated:
+                print("UNALLOCATED INODE " + j + " NOT ON FREELIST")
 
 def DirectoryAudit():
     return
@@ -133,6 +153,7 @@ def main():
     for row in fileReader:
         if row[0] == "SUPERBLOCK":
             superBlockObject = Superblock(row)
+
         elif row[0] == "BFREE":
             bfreeList.append(int(row[1]))
             #blockSet.add(Block(int(row[1]), 0, True, 0))
@@ -143,17 +164,32 @@ def main():
             group = Group(row)
         elif row[0] == "IFREE":
             freeInodes.append(int(row[1]))
-            inodeSet.add(int(row[1]))
+            #inodeSet.add(int(row[1]))
         elif row[0] == "INODE":
             inodeList.append(Inode(row))
         elif row[0] == "DIRENT":
             direntList.append(Dirent(row))
-        
-    for b in blockSet:
-        print(b.blockNumber)
+    
+        #   print(superBlockObject)
+        #for b in blockSet:
+        #       print(b.blockNumber)
 
-    BlockAudit(superBlockObject, group)
+        print("Nodes")
+        for i in inodeList:
+            print(i.inodeNumber)
             
+        print("free")
+        for i in freeInodes:
+            print(i)
+        print("all")
+        for j in range(superBlockObject.FirstNonReservedInode,
+                   1+ superBlockObject.InodeTotal):
+            print(j)
+        
+
+        BlockAudit(superBlockObject, group)
+        InodeAudit(superBlockObject)        
+        return
 
 if __name__ == '__main__':
     main()
