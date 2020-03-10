@@ -117,17 +117,18 @@ def InodeAudit(superBlock):
     for i in inodeList:
         free = isFreeInode(i.inodeNumber, superBlock)
         if i.mode <= 0 and not free:
-            print("UNALLOCATED INODE " + i.inodeNumber + " NOT ON FREELIST")
+            print("UNALLOCATED INODE " + str(i.inodeNumber) + " NOT ON FREELIST")
 
             
     for j in range(superBlock.FirstNonReservedInode,
                    1+ superBlock.InodeTotal):
         if j not in freeInodes:
+            allocated = False
             for n in inodeList:
                 if j == n.inodeNumber:
                     allocated = True
             if not allocated:
-                print("UNALLOCATED INODE " + j + " NOT ON FREELIST")
+                print("UNALLOCATED INODE " + str(j) + " NOT ON FREELIST")
 
 def DirectoryAudit():
     return
