@@ -86,9 +86,7 @@ class Indirect:
         self.BlockNumRef = int(column[5])
 
 
-def BlockAudit(superBlock, groupObj):
-    MaxBlocks = superBlock.BlockTotal
-    FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
+def InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj):
     for x in inodeList:
         logicalOffset = 0
         for block in x.directBlocks:
@@ -123,7 +121,14 @@ def BlockAudit(superBlock, groupObj):
                     usedBlocks[indirect].append(Block(indirect, 0, False, logicalOffset, x.inodeNumber)) 
             indirectionLevel += 1
 
-            return
+def BlockAudit(superBlock, groupObj):
+    MaxBlocks = superBlock.BlockTotal
+    FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
+
+    InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj)
+    
+    
+    return
 
 
 def InodeAudit():
