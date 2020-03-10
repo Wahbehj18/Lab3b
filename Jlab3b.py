@@ -105,7 +105,7 @@ def BlockAudit(superBlock, groupObj):
     return
 
 def isFreeInode(iNum, superBlock):
-    if iNum < superBlock.FirstNonReservedInode or iNum > superBlock.InodeTotal:
+    if iNum < 0 or iNum > superBlock.InodeTotal:
         return False
     elif iNum not in freeInodes:
         return False
@@ -116,8 +116,11 @@ def InodeAudit(superBlock):
     
     for i in inodeList:
         free = isFreeInode(i.inodeNumber, superBlock)
+
         if i.mode <= 0 and not free:
             print("UNALLOCATED INODE " + str(i.inodeNumber) + " NOT ON FREELIST")
+        if free:
+            print("ALLOCATED INODE " + str(i.inodeNumber) + " ON FREELIST")
 
             
     for j in range(superBlock.FirstNonReservedInode,
@@ -171,22 +174,7 @@ def main():
         elif row[0] == "DIRENT":
             direntList.append(Dirent(row))
     
-    #print(superBlockObject)
-    #for b in blockSet:
-    #       print(b.blockNumber)
-
-    print("Nodes")
-    for i in inodeList:
-        print(i.inodeNumber)
-            
-    print("free")
-    for i in freeInodes:
-        print(i)
-    print("all")
-    for j in range(superBlockObject.FirstNonReservedInode, 1+ superBlockObject.InodeTotal):
-        print(j)
-        
-
+    
     BlockAudit(superBlockObject, group)
     InodeAudit(superBlockObject)        
     return
