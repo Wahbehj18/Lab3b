@@ -7,7 +7,7 @@ inodeSet = set([])
 freeInodes = []
 inodeList = []
 direntList = []
-IndirectList = []
+indirectList = []
 bfreeList = []
 superBlockObject = None
 usedBlocks = {}
@@ -85,10 +85,7 @@ class Indirect:
         self.BlockNum = int(column[4])
         self.BlockNumRef = int(column[5])
 
-
-def BlockAudit(superBlock, groupObj):
-    MaxBlocks = superBlock.BlockTotal
-    FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
+def InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj):
     for x in inodeList:
         logicalOffset = 0
         for block in x.directBlocks:
@@ -98,10 +95,78 @@ def BlockAudit(superBlock, groupObj):
                 print("RESERVED BLOCK {} IN INODE {} AT OFFSET {}".format(block, x.inodeNumber, logicalOffset))
             elif block != 0:
                 if block not in usedBlocks:
-                    usedBlocks[block] = [Block(block, 0, False, logicalOffset, x)]
+                    usedBlocks[block] = [Block(block, 0, False, logicalOffset, x.inodeNumber)]
                 else:
-                    usedBlocks[block].append(Block(block, 0, False, logicalOffset, x))             
+                    usedBlocks[block].append(Block(block, 0, False, logicalOffset, x.inodeNumber))
             logicalOffset += 1
+        indirectionLevel = 1
+        for indirect in x.indirectBlocks:
+            level = ""
+            logicalOffset = 12
+            if indirectionLevel == 2:
+                level = "DOUBLE "
+                logicalOffset = 268
+            elif indirectionLevel == 3:
+                level = "TRIPLE "
+                logicalOffset = 65804
+            if indirect < 0 or indirect >= MaxBlocks:
+                print("INVALID {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, indirect, x.inodeNumber, logicalOffset))
+            elif indirect != 0 and indirect < FirstBlock:
+                print("RESERVED {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, indirect, x.inodeNumber, logicalOffset))
+            elif indirect != 0:
+                if indirect not in usedBlocks:
+                    usedBlocks[indirect] = [Block(indirect, indirectionLevel, False, logicalOffset, x.inodeNumber)]
+                else:
+                    usedBlocks[indirect].append(Block(indirect, indirectionLevel, False, logicalOffset, x.inodeNumber)) 
+            indirectionLevel += 1
+    for element in indirectList:
+        level = ""
+        if element.IndirectionLevel == 2:
+            level = "DOUBLE "
+        elif element.IndirectionLevel == 3:
+            level = "TRIPLE "
+        blockReference = element.BlockNumRef
+        if blockReference < 0 or blockReference >= MaxBlocks:
+            print("INVALID {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, blockReference, element.OwnerInode, element.BlockOffset))
+        elif blockReference != 0 and blockReference < FirstBlock:
+            print("RESERVED {}INDIRECT BLOCK {} IN INODE {} AT OFFSET {}".format(level, blockReference, element.OwnerInode, element.BlockOffset))
+        elif blockReference != 0:
+            if blockReference not in usedBlocks:
+                usedBlocks[blockReference] = [Block(blockReference, element.IndirectionLevel, False, element.BlockOffset, element.OwnerInode)]
+            else:
+                usedBlocks[blockReference].append(Block(blockReference, element.IndirectionLevel, False, element.BlockOffset, element.OwnerInode))
+    return
+
+def UnreferencedAndAllocated(MaxBlocks, FirstBlock, superBlock, groupObj):
+    for x in range(FirstBlock, MaxBlocks):
+        if not (x in bfreeList or x in usedBlocks): #not in free list or used
+            print("UNREFERENCED BLOCK {}".format(x))
+        if not (x not in bfreeList or x not in usedBlocks): #in free list and used
+            print("ALLOCATED BLOCK {} ON FREELIST".format(x))
+    return
+
+
+def FindDuplicates(MaxBlocks, FirstBlock, superBlock, groupObj):
+    for i in range(FirstBlock, MaxBlocks):
+        if i in usedBlocks:
+            if len(usedBlocks[i]) > 1:
+                for x in usedBlocks[i]:
+                    level = ""
+                    if x.indirection == 1:
+                        level = "INDIRECT "
+                    elif x.indirection == 2:
+                        level = "DOUBLE INDIRECT "
+                    elif x.indirection == 3:
+                        level = "TRIPLE INDIRECT "
+                    print("DUPLICATE {}BLOCK {} IN INODE {} AT OFFSET {}".format(level, x.blockNumber, x.inodeNum, x.offset))
+    return
+            
+def BlockAudit(superBlock, groupObj):
+    MaxBlocks = superBlock.BlockTotal
+    FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
+    InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj)
+    UnreferencedAndAllocated(MaxBlocks, FirstBlock, superBlock, groupObj)
+    FindDuplicates(MaxBlocks, FirstBlock, superBlock, groupObj)
     return
 
 
@@ -137,7 +202,7 @@ def main():
             bfreeList.append(int(row[1]))
             #blockSet.add(Block(int(row[1]), 0, True, 0))
         elif row[0] == "INDIRECT":
-            IndirectList.append(Indirect(row))
+            indirectList.append(Indirect(row))
             #blockSet.add(Block(int(row[5]), int(row[2]), False, int(row[4])))
         elif row[0] == "GROUP":
             group = Group(row)
