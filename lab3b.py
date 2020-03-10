@@ -136,12 +136,37 @@ def InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj):
             else:
                 usedBlocks[blockReference].append(Block(blockReference, element.IndirectionLevel, False, element.BlockOffset, element.OwnerInode))
     return
-        
+
+def UnreferencedAndAllocated(MaxBlocks, FirstBlock, superBlock, groupObj):
+    for x in range(FirstBlock, MaxBlocks):
+        if not (x in bfreeList or x in usedBlocks): #not in free list or used
+            print("UNREFERENCED BLOCK {}".format(x))
+        if not (x not in bfreeList or x not in usedBlocks): #in free list and used
+            print("ALLOCATED BLOCK {} ON FREELIST".format(x))
+    return
+
+
+def FindDuplicates(MaxBlocks, FirstBlock, superBlock, groupObj):
+    for i in range(FirstBlock, MaxBlocks):
+        if i in usedBlocks:
+            if len(usedBlocks[i]) > 1:
+                for x in usedBlocks[i]:
+                    level = ""
+                    if x.indirection == 1:
+                        level = "INDIRECT "
+                    elif x.indirection == 2:
+                        level = "DOUBLE INDIRECT "
+                    elif x.indirection == 3:
+                        level = "TRIPLE INDIRECT "
+                    print("DUPLICATE {}BLOCK {} IN INODE {} AT OFFSET {}".format(level, x.blockNumber, x.inodeNum, x.offset))
+    return
+            
 def BlockAudit(superBlock, groupObj):
     MaxBlocks = superBlock.BlockTotal
     FirstBlock = int(groupObj.FirstInodeBlockNum + superBlock.InodeSize * groupObj.TotalInodes / superBlock.blockSize)
     InvalidAndReserved(MaxBlocks, FirstBlock, superBlock, groupObj)
-    
+    UnreferencedAndAllocated(MaxBlocks, FirstBlock, superBlock, groupObj)
+    FindDuplicates(MaxBlocks, FirstBlock, superBlock, groupObj)
     return
 
 
