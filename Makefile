@@ -8,7 +8,7 @@ build:
 	chmod +x lab3b
 
 dist:
-	tar -czf lab3b-505117243.tar.gz lab3b.py README Makefile
+	tar -czf lab3b-505117243.tar.gz lab3b.py README Makefile 
 
 clean:
 	rm -f lab3b lab3b-505117243.tar.gz

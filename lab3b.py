@@ -1,3 +1,4 @@
+#!/usr/local/cs/bin/python3
 import csv
 import argparse
 import sys
@@ -11,6 +12,7 @@ indirectList = []
 bfreeList = []
 superBlockObject = None
 usedBlocks = {}
+usedInodes = []
 
 class Superblock:
     def __init__(self, column):
@@ -180,12 +182,12 @@ def isFreeInode(iNum, superBlock):
 def InodeAudit(superBlock):
     for i in inodeList:
         free = isFreeInode(i.inodeNumber, superBlock)
-
         if i.mode <= 0 and not free:
             print("UNALLOCATED INODE " + str(i.inodeNumber) + " NOT ON FREELIST")
         if free:
             print("ALLOCATED INODE " + str(i.inodeNumber) + " ON FREELIST")
-
+        if i.inodeNumber != 0:
+            usedInodes.append(i.inodeNumber)
 
     for j in range(superBlock.FirstNonReservedInode,
                    1+ superBlock.InodeTotal):
@@ -197,6 +199,30 @@ def InodeAudit(superBlock):
             if not allocated:
                 print("UNALLOCATED INODE " + str(j) + " NOT ON FREELIST")
 
+def DirInvalidUnallocated(superBlock, inodeLinks, parentInodes):
+    for directory in direntList:
+        direcInode = directory.inodeNum
+        if direcInode > superBlock.InodeTotal or direcInode < 1:
+            print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(directory.parentInode, directory.Name, direcInode))
+        elif direcInode not in usedInodes:
+            print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(directory.parentInode, directory.Name, direcInode))
+        else:
+            inodeLinks[direcInode] += 1
+        if not (directory.Name == "'.'" or directory.Name == "'..'"):
+            parentInodes[direcInode] = directory.parentInode
+    return
+
+
+def directoryLinks(superBlock, inodeLinks, parentInodes):
+    for inode in inodeList:
+        if not inodeLinks[inode.inodeNumber] == inode.linkCount:
+            print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(inode.inodeNumber, inodeLinks[inode.inodeNumber], inode.linkCount))
+
+    for directory in direntList:
+        if directory.Name == "'.'" and directory.inodeNum != directory.parentInode:
+            print("DIRECTORY INODE {} NAME '.' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode, directory.inodeNum, directory.parentInode))
+        if directory.Name == "'..'" and directory.inodeNum != parentInodes[directory.parentInode]:
+            print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode, directory.inodeNum, parentInodes[directory.parentInode]))
 
 def DirectoryAudit(superBlock):
     inodeLinks = {}
@@ -209,27 +235,9 @@ def DirectoryAudit(superBlock):
     parentInodes[2] = 2
       
     
-    for directory in direntList:
-        direcInode = directory.inodeNum
-        if direcInode in freeInodes:
-            print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(directory.parentInode, directory.Name, direcInode))
-        elif direcInode > superBlock.InodeTotal or direcInode < 1:
-            print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(directory.parentInode, directory.Name, direcInode))
-        else:
-            inodeLinks[direcInode] += 1
-        if directory.Name != "'.'" and directory.Name != "'..'":
-            parentInodes[direcInode] = directory.parentInode
-
-       
-    for inode in inodeList:
-        if inodeLinks[inode.inodeNumber] != inode.linkCount:
-            print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(inode.inodeNumber, inodeLinks[inode.inodeNumber], inode.linkCount))
-
-    for directory in direntList:
-        if directory.Name == "'.'" and directory.inodeNum != directory.parentInode:
-            print("DIRECTORY INODE {} NAME '.' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode, directory.inodeNum, directory.parentInode))
-        if directory.Name == "'..'" and directory.inodeNum != parentInodes[directory.parentInode]:
-            print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode, directory.inodeNum, parentInodes[directory.parentInode]))
+    DirInvalidUnallocated(superBlock, inodeLinks, parentInodes)
+    directoryLinks(superBlock, inodeLinks, parentInodes)
+   
     return
 
 def main():
@@ -239,14 +247,14 @@ def main():
 
     #print(args.csvFile)
     if not ".csv" in args.csvFile:
-        print("Error File is not valid CSV")
-        return 1
+        sys.stderr.write("Error File is not valid CSV")
+        sys.exit(1)
 
     try:
         csvFile = open(args.csvFile, "r")
     except IOError:
-        print("Error File does not exist")
-        return 1
+        sys.stderr.write("Error File does not exist")
+        sys.exit(1)
 
     fileReader = csv.reader(csvFile)
        
@@ -269,8 +277,8 @@ def main():
         elif row[0] == "DIRENT":
             direntList.append(Dirent(row))
         
-    for b in blockSet:
-        print(b.blockNumber)
+#    for b in blockSet:
+#        print(b.blockNumber)
 
     BlockAudit(superBlockObject, group)
     InodeAudit(superBlockObject)
