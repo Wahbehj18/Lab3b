@@ -1,0 +1,7 @@
+#Jacob Wahbeh Valentin Lagunes
+#Wahbehj18@g.ucla.edu valetinlagunes51@gmail.com
+#105114897 505117243
+#Makefile Lab3b
+
+build:
+	gcc -Wall -Wextra -o lab3b lab3b.py

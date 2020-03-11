@@ -1,0 +1,16 @@
+NAME:Valentin Lagunes,Jacob Wahbeh
+EMAIL:valentinlagunes51@gmail.com,wahbehj18@g.ucla.edu
+ID:505117243,105114897
+
+lab3b.py parses csv file from EXT2 file system and audits the report for
+any errors. At first we had trouble getting used to python and the libraries
+but we eventually found that it was so much simpler and easier than C.
+The argparse and opening the file was pretty straigh forward. We made
+classes for each of the objects like Inodes, SuperBlock, block, so on.
+We made lists for freeBlocks, Inodes, Blocks, and freeInodes, which made a
+lot of the code easy to write.
+
+Makefile generates a tarball, cleans directory, and builds
+
+README this file
+
